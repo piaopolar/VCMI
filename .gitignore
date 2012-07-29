@@ -15,6 +15,8 @@
 *.vws
 *.map
 *.tmp
+*.sdf
+*.opensdf
 .svn
 Debug
 Release
