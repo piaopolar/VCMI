@@ -168,14 +168,17 @@ SDL_Surface * BitmapHandler::loadBitmapFromLod(CLodHandler *lod, std::string fna
 			ret = IMG_Load_RW( SDL_RWFromMem((void*)file, size), 1);
 
 		if (!ret)
+		{
 			tlog1<<"Failed to open "<<fname<<" via SDL_Image\n";
-		delete [] file;
-		if (ret->format->palette)
+		}
+		else if (ret->format->palette)
 		{
 			//set correct value for alpha\unused channel
 			for (int i=0; i< ret->format->palette->ncolors; i++)
 				ret->format->palette->colors[i].unused = 255;
 		}
+
+		delete [] file;
 	}
 	return ret;
 }

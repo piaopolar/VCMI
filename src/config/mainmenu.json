@@ -3,6 +3,7 @@
 	"window":
 	{
 		"background" : "ZPIC1005",
+		//  ZPIC1005是wog的标题画面，在汉化版的 H3bitmap.lod 不存在，而GAMSELBK是死亡阴影的标题画面
 		//"scalable" : true, //background will be scaled to screen size
 		"video" :    {"x": 8, "y": 105, "name":"ACREDIT.SMK" },//Floating WoG logo
 		//"images" : [],//Optioal, contains any additional images in the same format as video
