@@ -33,15 +33,17 @@
 #include "../UIFramework/CCursorHandler.h"
 #include "../UIFramework/CGuiHandler.h"
 
-#ifndef __GNUC__
-const double M_PI = 3.14159265358979323846;
-#else
+#ifdef __GNUC__
 #define _USE_MATH_DEFINES
 #include <cmath>
 #endif
 #include "../../lib/UnlockGuard.h"
 
 using namespace boost::assign;
+
+#ifndef M_PI
+const double M_PI = 3.14159265358979323846;
+#endif
 
 const time_t CBattleInterface::HOVER_ANIM_DELTA = 1;
 

@@ -661,10 +661,10 @@ static void setScreenRes(int w, int h, int bpp, bool fullscreen, bool resetVideo
 		int sw = GetSystemMetrics(SM_CXSCREEN),
 			sh = GetSystemMetrics(SM_CYSCREEN);
 		RECT curpos;
-		GetWindowRect(wm.window,&curpos);
+		GetWindowRect(wm.info.win.window,&curpos);
 		int ourw = curpos.right - curpos.left,
 			ourh = curpos.bottom - curpos.top;
-		SetWindowPos(wm.window, 0, (sw - ourw)/2, (sh - ourh)/2, 0, 0, SWP_NOZORDER|SWP_NOSIZE);
+		SetWindowPos(wm.info.win.window, 0, (sw - ourw)/2, (sh - ourh)/2, 0, 0, SWP_NOZORDER|SWP_NOSIZE);
 	}
 	else
 	{
