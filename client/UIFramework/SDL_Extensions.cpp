@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#include "iconv.h"
 #include "SDL_Extensions.h"
 #include "SDL_Pixels.h"
 
@@ -17,6 +19,73 @@
  * Full text of license available in license.txt file, in main folder
  *
  */
+
+
+int convert(const char *from, const char *to, char* save, int savelen, char *src, int srclen)  
+{  
+	iconv_t cd;  
+	char   *inbuf = src;  
+	char *outbuf = save;  
+	size_t outbufsize = savelen;  
+	int status = 0;  
+	size_t  savesize = 0;  
+	size_t inbufsize = srclen;  
+	const char* inptr = inbuf;  
+	size_t      insize = inbufsize;  
+	char* outptr = outbuf;  
+	size_t outsize = outbufsize;  
+	cd = iconv_open(to, from);  
+	iconv(cd,NULL,NULL,NULL,NULL);  
+	if (inbufsize == 0) {  
+		status = -1;  
+		goto done;  
+	}  
+	while (insize > 0) {  
+		size_t res = iconv(cd,(const char**)&inptr,&insize,&outptr,&outsize);  
+		if (outptr != outbuf) {  
+			int saved_errno = errno;  
+			int outsize = outptr - outbuf;  
+			strncpy(save+savesize, outbuf, outsize);  
+			errno = saved_errno;  
+		}  
+		if (res == (size_t)(-1)) {  
+			if (errno == EILSEQ) {  
+				int one = 1;  
+				iconvctl(cd,ICONV_SET_DISCARD_ILSEQ,&one);  
+				status = -3;  
+			} else if (errno == EINVAL) {  
+				if (inbufsize == 0) {  
+					status = -4;  
+					goto done;  
+				} else {  
+					break;  
+				}  
+			} else if (errno == E2BIG) {  
+				status = -5;  
+				goto done;  
+			} else {  
+				status = -6;  
+				goto done;  
+			}  
+		}  
+	}  
+	status = strlen(save);  
+done:  
+	iconv_close(cd);  
+	return status;  
+} 
+
+void AnsiToUTF8(std::string strAnsi, std::string& rStrUTF8)
+{
+	std::vector<unsigned char> tobuf(2 * strAnsi.length() + 16); 
+	int nlen = convert("gb2312","UTF-8", (char *)&tobuf[0], tobuf.size(), (char *)strAnsi.c_str(), strAnsi.length());  
+	if (nlen < 0) {  
+		rStrUTF8 = "";
+	} else {
+		tobuf.resize(nlen);  
+		rStrUTF8 = std::string(tobuf.begin(), tobuf.end());  
+	}  
+}
 
 SDL_Color Colors::createColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a /*= 0*/)
 {
@@ -94,7 +163,9 @@ void printAtMiddleWB(const std::string & text, int x, int y, TTF_Font * font, in
 	wesu.resize(ws.size());
 	for (size_t i=0; i < wesu.size(); ++i)
 	{
-		wesu[i]=TTF_RenderText_Blended(font,ws[i].c_str(),kolor);
+		std::string strText;
+		AnsiToUTF8(ws[i], strText);
+		wesu[i]=TTF_RenderUTF8_Blended(font,ws[i].c_str(),kolor);
 	}
 
 	int tox=0, toy=0;
@@ -122,8 +193,11 @@ void printAtWB(const std::string & text, int x, int y, TTF_Font * font, int char
 	std::vector<std::string> ws = CMessage::breakText(text,charpr);
 	std::vector<SDL_Surface*> wesu;
 	wesu.resize(ws.size());
-	for (size_t i=0; i < wesu.size(); ++i)
-		wesu[i]=TTF_RenderText_Blended(font,ws[i].c_str(),kolor);
+	for (size_t i=0; i < wesu.size(); ++i) {
+		std::string strUTF8;
+		AnsiToUTF8(ws[i], strUTF8);
+		wesu[i]=TTF_RenderUTF8_Blended(font,strUTF8.c_str(),kolor);
+	}
 
 	int evy = y;
 	for (size_t i=0; i < wesu.size(); ++i)
@@ -175,14 +249,18 @@ void CSDL_Ext::printAtMiddleWB( const std::string & text, int x, int y, EFonts f
 	}
 }
 
-void printAtMiddle(const std::string & text, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2)
+void printAtMiddle(const std::string & textOrg, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2)
 {
-	if(text.length()==0) return;
+	if(textOrg.length()==0) return;
+	
+	std::string text;
+	AnsiToUTF8(textOrg, text);
+
 	SDL_Surface * temp;
 	switch (quality)
 	{
 	case 0:
-		temp = TTF_RenderText_Solid(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Solid(font,text.c_str(),kolor);
 		break;
 	case 1:
 		SDL_Color tem;
@@ -190,13 +268,13 @@ void printAtMiddle(const std::string & text, int x, int y, TTF_Font * font, SDL_
 		tem.g = 0xff-kolor.g;
 		tem.r = 0xff-kolor.r;
 		tem.unused = 0xff-kolor.unused;
-		temp = TTF_RenderText_Shaded(font,text.c_str(),kolor,tem);
+		temp = TTF_RenderUTF8_Shaded(font,text.c_str(),kolor,tem);
 		break;
 	case 2:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	default:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	}
 	SDL_Rect dstRect = genRect(temp->h, temp->w, x-(temp->w/2), y-(temp->h/2));
@@ -218,15 +296,18 @@ void CSDL_Ext::printAtMiddle( const std::string & text, int x, int y, EFonts fon
 	printAt(text, nx, ny, font, kolor, dst);
 }
 
-void printAt(const std::string & text, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2, bool refresh=false)
+void printAt(const std::string & textOrg, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2, bool refresh=false)
 {
+	std::string text;
+	AnsiToUTF8(textOrg, text);
+
 	if (text.length()==0)
 		return;
 	SDL_Surface * temp;
 	switch (quality)
 	{
 	case 0:
-		temp = TTF_RenderText_Solid(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Solid(font,text.c_str(),kolor);
 		break;
 	case 1:
 		SDL_Color tem;
@@ -234,13 +315,13 @@ void printAt(const std::string & text, int x, int y, TTF_Font * font, SDL_Color 
 		tem.g = 0xff-kolor.g;
 		tem.r = 0xff-kolor.r;
 		tem.unused = 0xff-kolor.unused;
-		temp = TTF_RenderText_Shaded(font,text.c_str(),kolor,tem);
+		temp = TTF_RenderUTF8_Shaded(font,text.c_str(),kolor,tem);
 		break;
 	case 2:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	default:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	}
 	SDL_Rect dstRect = genRect(temp->h,temp->w,x,y);
@@ -320,15 +401,19 @@ void CSDL_Ext::printAt( const std::string & text, int dstX, int dstY, EFonts fon
 	SDL_UnlockSurface(dst);
 }
 
-void printTo(const std::string & text, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2)
+void printTo(const std::string & textOrg, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2)
 {
-	if (text.length()==0)
+	if (textOrg.length()==0)
 		return;
+
+	std::string text;
+	AnsiToUTF8(textOrg, text);
+
 	SDL_Surface * temp;
 	switch (quality)
 	{
 	case 0:
-		temp = TTF_RenderText_Solid(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Solid(font,text.c_str(),kolor);
 		break;
 	case 1:
 		SDL_Color tem;
@@ -336,13 +421,13 @@ void printTo(const std::string & text, int x, int y, TTF_Font * font, SDL_Color 
 		tem.g = 0xff-kolor.g;
 		tem.r = 0xff-kolor.r;
 		tem.unused = 0xff-kolor.unused;
-		temp = TTF_RenderText_Shaded(font,text.c_str(),kolor,tem);
+		temp = TTF_RenderUTF8_Shaded(font,text.c_str(),kolor,tem);
 		break;
 	case 2:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	default:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	}
 	SDL_Rect dstRect = genRect(temp->h,temp->w,x-temp->w,y-temp->h);
@@ -362,15 +447,19 @@ void CSDL_Ext::printTo( const std::string & text, int x, int y, EFonts font, SDL
 	printAt(text, x - f->getWidth(text.c_str()), y - f->height, font, kolor, dst);
 }
 
-void printToWR(const std::string & text, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2)
+void printToWR(const std::string & textOrg, int x, int y, TTF_Font * font, SDL_Color kolor, SDL_Surface * dst, ui8 quality=2)
 {
-	if (text.length()==0)
+	if (textOrg.length()==0)
 		return;
+
+	std::string text;
+	AnsiToUTF8(textOrg, text);
+
 	SDL_Surface * temp;
 	switch (quality)
 	{
 	case 0:
-		temp = TTF_RenderText_Solid(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Solid(font,text.c_str(),kolor);
 		break;
 	case 1:
 		SDL_Color tem;
@@ -378,13 +467,13 @@ void printToWR(const std::string & text, int x, int y, TTF_Font * font, SDL_Colo
 		tem.g = 0xff-kolor.g;
 		tem.r = 0xff-kolor.r;
 		tem.unused = 0xff-kolor.unused;
-		temp = TTF_RenderText_Shaded(font,text.c_str(),kolor,tem);
+		temp = TTF_RenderUTF8_Shaded(font,text.c_str(),kolor,tem);
 		break;
 	case 2:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	default:
-		temp = TTF_RenderText_Blended(font,text.c_str(),kolor);
+		temp = TTF_RenderUTF8_Blended(font,text.c_str(),kolor);
 		break;
 	}
 	SDL_Rect dstRect = genRect(temp->h,temp->w,x-temp->w,y-temp->h);
