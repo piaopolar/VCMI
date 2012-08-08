@@ -27,7 +27,7 @@
 #endif
 
 #if SDL_VERSION_ATLEAST(1,3,0)
-#define SDL_GetKeyState SDL_GetKeyboardState
+#define SDL_GetKeyState(x) SDL_GetKeyboardState(NULL)[SDL_GetScancodeFromKey(x)]
 #endif
 
 struct Rect;

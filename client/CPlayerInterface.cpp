@@ -1273,12 +1273,12 @@ bool CPlayerInterface::moveHero( const CGHeroInstance *h, CGPath path )
 
 bool CPlayerInterface::shiftPressed() const
 {
-	return SDL_GetKeyState(NULL)[SDLK_LSHIFT]  ||  SDL_GetKeyState(NULL)[SDLK_RSHIFT];
+	return SDL_GetKeyState(SDLK_LSHIFT)  ||  SDL_GetKeyState(SDLK_RSHIFT);
 }
 
 bool CPlayerInterface::altPressed() const
 {
-	return SDL_GetKeyState(NULL)[SDLK_LALT]  ||  SDL_GetKeyState(NULL)[SDLK_RALT];
+	return SDL_GetKeyState(SDLK_LALT)  ||  SDL_GetKeyState(SDLK_RALT);
 }
 
 void CPlayerInterface::showGarrisonDialog( const CArmedInstance *up, const CGHeroInstance *down, bool removableUnits, int queryID)
@@ -1494,7 +1494,7 @@ void CPlayerInterface::objectRemoved( const CGObjectInstance *obj )
 
 bool CPlayerInterface::ctrlPressed() const
 {
-	return SDL_GetKeyState(NULL)[SDLK_LCTRL]  ||  SDL_GetKeyState(NULL)[SDLK_RCTRL];
+	return SDL_GetKeyState(SDLK_LCTRL)  ||  SDL_GetKeyState(SDLK_RCTRL);
 }
 
 void CPlayerInterface::update()
